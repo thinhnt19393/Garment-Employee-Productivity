@@ -1,7 +1,8 @@
 import dash
+import dash_bootstrap_components as dbc
 from dash import dcc
 from dash import html
-from dash.html.Label import Label
+
 from pandas.io.formats import style
 import plotly.express as px
 import pandas as pd
@@ -10,7 +11,8 @@ from dash import callback_context
 from datetime import date
 
 app = dash.Dash(
-    __name__
+    __name__,
+    external_stylesheets=[dbc.themes.BOOTSTRAP]
 )
 
 df = pd.read_csv("preprocess_data.csv")
@@ -18,23 +20,19 @@ days = df["date"].unique()
 dict_days = {days[i]:i+1 for i in range(len(days))}
 df['number'] = [dict_days[day] for day in df.date]
 
-colors = {"background": "#011833", "text": "#7FDBFF"}
+colors = {"background": "#011833", "text": "#7FDBFF"} 
 
-app.title = "Productivity of garment employee"
-
-app.layout = html.Div(
+app.layout = dbc.Container(
     [
-        html.Div(
-            [
-                html.Div(
-                    [
-                        html.Div(
+        dbc.Row([
+            html.H1("Productivity of garment employee", style={'textAlign':'center'})
+        ]),
+        dbc.Row([
+            dbc.Col([
+                dbc.Card([
+                        dbc.CardBody(
                             [
-                                html.H2("Start date and end date", ),
-                            ]
-                        ),
-                        html.Div(
-                            [
+                                html.H5("Start date and end date", ),
                                 dcc.DatePickerSingle(
                                     id='my-date-picker-start',
                                     min_date_allowed=date(2015, 1, 1),
@@ -49,10 +47,6 @@ app.layout = html.Div(
                                     initial_visible_month=date(2015, 3, 11),
                                     date=date(2015, 3, 11),
                                 ),
-                            ]
-                        ),
-                        html.Div(
-                            [
                                 dcc.RangeSlider(id="slider-date", min=1,
                                     max=59,
                                     step=1, value=[1, 59],
@@ -65,44 +59,24 @@ app.layout = html.Div(
                         ),
                     ]
                 ),
-                html.Div(
-                    [
-                        html.Div(
-                            [
+                dbc.Card([
+                        dbc.CardBody([
                                 html.H2("Quarter"),
-                            ]
-                        ),
-                        html.Div(
-                            [
-                                dcc.Checklist(id="checkbox_quarter",
-                                    options = ["Quarter1", "Quarter2", "Quarter3", "Quarter4", "Quarter5"],
-                                    value = ["Quarter1", "Quarter2", "Quarter3", "Quarter4", "Quarter5"],
-                                )
-                            ],
-                            className="checklist",
-                        ),
-                    ]
-                ),
-            ],
-            className="column",
-            #style={
-            #'display': 'inline-block',
-            #'width': '300px',
-            #'vertical-align': 'top'
-            #},'''
-        ),
-        html.Div(dcc.Graph(id="actual_productivtiy"), className="chart",
-        #style={
-        #    'display': 'inline-block',
-        #    'width': '900px',
-        #    'height': '30px',
-        #    'vertical-align': 'top',
-        #    'margin-left': '50px'
-        #}
-        ),
+                            
+                        dcc.Checklist(id="checkbox_quarter",
+                                options = ["Quarter1", "Quarter2", "Quarter3", "Quarter4", "Quarter5"],
+                                value = ["Quarter1", "Quarter2", "Quarter3", "Quarter4", "Quarter5"],
+                            )
+                        ],
+                        className="checklist",)
+                        ,]),
+                    ],
+                className="column", width=2,
+            ),
+            dbc.Col(dcc.Graph(id="actual_productivtiy"), className="chart",)
+        ]),
     ],
-    className="container",
-    style={'display': 'flex', 'flex-direction': 'row'}
+    fluid=True, #style={'backgroundColor':colors["background"]},
 )
 
 #Update date
@@ -138,10 +112,12 @@ def update_date(start_date, end_date, slider_v):
 )
 def update_figure(start_date, end_date, checkbox_quarter):
     dff = df[((df.date>=start_date) & (df.date<=end_date) & (df.quarter.isin(checkbox_quarter)))]
+    plot_df = pd.DataFrame()
+    plot_df['Actual productivity'] = dff.groupby("date")['actual_productivity'].mean()
+    plot_df['Targeted productivity'] = dff.groupby("date")['targeted_productivity'].mean()
     fig = px.line(
-        dff,
-        x="date",
-        y="actual_productivity",
+        plot_df,
+        y = ['Actual productivity', 'Targeted productivity']
     )
 
     fig.update_layout(
