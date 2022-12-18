@@ -1,5 +1,7 @@
 import dash
 import dash_bootstrap_components as dbc
+import plotly.figure_factory as ff
+
 from dash import dcc
 from dash import html
 
@@ -20,7 +22,7 @@ days = df["date"].unique()
 dict_days = {days[i]:i+1 for i in range(len(days))}
 df['number'] = [dict_days[day] for day in df.date]
 
-colors = {"background": "#011833", "text": "#7FDBFF"} 
+#colors = {"background": "#011833", "text": "#7FDBFF"} 
 
 app.layout = dbc.Container(
     [
@@ -73,11 +75,31 @@ app.layout = dbc.Container(
                     ],
                 className="column", width=2,
             ),
-            dbc.Col(dcc.Graph(id="actual_productivtiy"), className="chart",)
+            dbc.Col([
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(dcc.Graph(id="kde_plot")
+                            ), 
+                            className="chart"),
+                        width=6
+                        ),
+                    dbc.Col(
+                        dbc.Card(
+                            dbc.CardBody(dcc.Graph(id="department")
+                            ),                            
+                            className="chart"),
+                        width=4
+                        ),
+                ]),
+                dbc.Row(
+                    dbc.Col(dcc.Graph(id="actual_productivity"), width=10),
+                    )
+            ]),
         ]),
     ],
     fluid=True, #style={'backgroundColor':colors["background"]},
-)
+ )
 
 #Update date
 @app.callback(
@@ -103,9 +125,60 @@ def update_date(start_date, end_date, slider_v):
 
     return start_date, end_date, slider_v
 
-#Update figure
+#Update kde figure
 @app.callback(
-    Output("actual_productivtiy", "figure"),
+    Output("kde_plot", "figure"),
+    Input('my-date-picker-start','date'),
+    Input('my-date-picker-end','date'),
+    Input('checkbox_quarter','value'),
+)
+def update_kde(start_date, end_date, checkbox_quarter):
+    dff = df[((df.date>=start_date) & (df.date<=end_date) & (df.quarter.isin(checkbox_quarter)))]
+    hist_data = [dff['actual_productivity']]
+    group_labels = ['distplot'] # name of the dataset
+    fig = ff.create_distplot(hist_data, group_labels, show_hist=False, show_rug=False)
+
+    fig.update_layout(
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font_color="black",
+        xaxis_showgrid=False, 
+        yaxis_showgrid=False,
+        showlegend=False,
+    )
+
+    return fig
+    
+#Update line figure
+@app.callback(
+    Output("department", "figure"),
+    Input('my-date-picker-start','date'),
+    Input('my-date-picker-end','date'),
+    Input('checkbox_quarter','value'),
+)
+def update_column(start_date, end_date, checkbox_quarter):
+    dff = df[((df.date>=start_date) & (df.date<=end_date) & (df.quarter.isin(checkbox_quarter)))]
+    plot_df = dff.groupby("department")['actual_productivity'].mean()
+    fig = px.bar(
+        plot_df,
+    )
+
+    fig.update_layout(
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font_color="black",
+        xaxis_showgrid=False, 
+        yaxis_showgrid=False,
+        showlegend=False,
+    )
+    
+    fig.update_yaxes(title='')
+
+    return fig
+
+#Update line figure
+@app.callback(
+    Output("actual_productivity", "figure"),
     Input('my-date-picker-start','date'),
     Input('my-date-picker-end','date'),
     Input('checkbox_quarter','value'),
