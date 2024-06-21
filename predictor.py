@@ -6,7 +6,7 @@ import pickle
 pipe = pickle.load(open('pipeline.sav', 'rb'))
 
 st.title('Garment Worker Productivity Prediction')
-st.image("""https://betterwork.org/wp-content/uploads/2016/03/vietnam-factory.jpg""", width=700)
+st.image("""https://imagev3.vietnamplus.vn/w1000/Uploaded/2024/bokttj/2023_12_10/ttxvn-det-may-viet-nam-1-9433.jpg""", width=700)
 st.header('Enter the characteristics of the worker:')
 
 quarter = st.selectbox('Quarter:', ['Quarter1', 'Quarter2', 'Quarter3', 'Quarter4', 'Quarter5'])
